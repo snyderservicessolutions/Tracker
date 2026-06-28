@@ -615,6 +615,7 @@
     <span id="sync-label">Loading…</span>
   </div>
   <button class="sync-btn sign-in" id="sync-action-btn" onclick="handleSyncAction()" style="display:none;"></button>
+  <button class="sync-btn" id="reconnect-btn" onclick="forceReconnect()" style="display:none;margin-left:4px;">↺ Reconnect</button>
 </div>
 
 <!-- APP (shown when signed in) -->
@@ -877,6 +878,18 @@ function setupDriveSync() {
   showClientIdPrompt();
 }
 
+function forceReconnect() {
+  const clientId = localStorage.getItem('vt_client_id');
+  if (!clientId) { showClientIdPrompt(); return; }
+  if (!tokenClient) {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: clientId, scope: SCOPES, callback: handleTokenResponse,
+    });
+  }
+  setSyncStatus('syncing', 'Connecting…');
+  tokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
 function signIn() {
   const clientId = localStorage.getItem('vt_client_id');
   if (!clientId) { showClientIdPrompt(); return; }
@@ -1024,6 +1037,10 @@ function showApp() {
   document.getElementById('signin-screen').classList.remove('visible');
   document.getElementById('app').style.display = '';
   document.getElementById('sync-bar').style.display = '';
+  // Always show reconnect button if clientId is stored
+  if (localStorage.getItem('vt_client_id')) {
+    document.getElementById('reconnect-btn').style.display = '';
+  }
 }
 
 function setSyncStatus(state, label) {
