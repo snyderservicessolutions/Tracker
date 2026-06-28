@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Vegas Ideas">
+<title>Vegas Content Tracker</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c27;
+    --surface3: #242433;
+    --border: #2a2a3d;
+    --border2: #363650;
+    --neon: #e8ff47;
+    --neon-dim: rgba(232,255,71,0.12);
+    --neon-glow: rgba(232,255,71,0.25);
+    --pink: #ff4d8f;
+    --pink-dim: rgba(255,77,143,0.12);
+    --blue: #4da8ff;
+    --blue-dim: rgba(77,168,255,0.12);
+    --text: #f0f0fa;
+    --text2: #9090aa;
+    --text3: #5a5a72;
+    --status-idea: #4da8ff;
+    --status-film: #ff9f4d;
+    --status-posted: #4dff8f;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --green: #4dff8f;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f2f2f8;
+      --surface: #ffffff;
+      --surface2: #f7f7fc;
+      --surface3: #eeeef6;
+      --border: #dddde8;
+      --border2: #ccccda;
+      --neon: #5a5a00;
+      --neon-dim: rgba(90,90,0,0.08);
+      --pink: #c0004a;
+      --pink-dim: rgba(192,0,74,0.08);
+      --blue: #0062cc;
+      --blue-dim: rgba(0,98,204,0.08);
+      --text: #0f0f1a;
+      --text2: #5a5a72;
+      --text3: #9090aa;
+      --status-idea: #0062cc;
+      --status-film: #b35a00;
+      --status-posted: #006b2f;
+      --green: #006b2f;
+    }
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    overscroll-behavior: none;
+  }
+
+  /* SYNC STATUS BAR */
+  .sync-bar {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 6px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text3);
+    min-height: 32px;
+  }
+
+  .sync-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .sync-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--text3);
+    flex-shrink: 0;
+  }
+
+  .sync-dot.synced { background: var(--green); }
+  .sync-dot.syncing { background: #ff9f4d; animation: pulse 1s infinite; }
+  .sync-dot.error { background: #ff4d4d; }
+  .sync-dot.local { background: var(--text3); }
+
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+
+  .sync-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 11px;
+    color: var(--text2);
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .sync-btn:active { opacity: 0.7; }
+  .sync-btn.sign-in { border-color: #4285f4; color: #4285f4; }
+
+  /* HEADER */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 16px 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .logo {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+
+  .logo span { color: var(--neon); }
+
+  @media (prefers-color-scheme: light) { .logo span { color: #7a7a00; } }
+
+  .add-btn {
+    background: var(--neon);
+    color: #0a0a0f;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 8px 14px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+
+  @media (prefers-color-scheme: light) { .add-btn { background: #0a0a0f; color: #f2f2f8; } }
+  .add-btn:active { opacity: 0.75; }
+
+  .tabs { display: flex; }
+
+  .tab {
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text3);
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: 'Inter', sans-serif;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+    white-space: nowrap;
+  }
+
+  .tab.active { color: var(--neon); border-bottom-color: var(--neon); }
+  @media (prefers-color-scheme: light) { .tab.active { color: #5a5a00; border-bottom-color: #5a5a00; } }
+
+  /* FILTER / VIEW */
+  .filter-bar {
+    padding: 12px 16px;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    background: var(--bg);
+  }
+  .filter-bar::-webkit-scrollbar { display: none; }
+
+  .filter-chip {
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text2);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.15s;
+  }
+
+  .filter-chip.active { background: var(--neon-dim); border-color: var(--neon); color: var(--neon); }
+  @media (prefers-color-scheme: light) { .filter-chip.active { background: rgba(90,90,0,0.08); border-color: #7a7a00; color: #5a5a00; } }
+
+  .view-toggle { display: flex; gap: 6px; padding: 12px 16px 4px; }
+
+  .view-btn {
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text2);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.15s;
+  }
+
+  .view-btn.active { background: var(--neon-dim); border-color: var(--neon); color: var(--neon); }
+  @media (prefers-color-scheme: light) { .view-btn.active { background: rgba(90,90,0,0.08); border-color: #7a7a00; color: #5a5a00; } }
+
+  /* MAIN */
+  .main { padding: 0 16px 100px; }
+
+  .group-header {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text3);
+    padding: 20px 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .group-count {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-size: 11px;
+    color: var(--text3);
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  /* CARDS */
+  .idea-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .idea-card:active { background: var(--surface2); }
+
+  .idea-card.posted { opacity: 0.5; }
+
+  .idea-card.posted::after {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--status-posted);
+  }
+
+  .idea-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .idea-title { font-size: 15px; font-weight: 600; line-height: 1.35; color: var(--text); }
+  .idea-card.posted .idea-title { text-decoration: line-through; color: var(--text3); }
+
+  .status-badge {
+    flex-shrink: 0;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .status-idea { background: var(--blue-dim); color: var(--status-idea); }
+  .status-film { background: rgba(255,159,77,0.12); color: var(--status-film); }
+  .status-posted { background: rgba(77,255,143,0.12); color: var(--status-posted); }
+
+  .idea-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+
+  .meta-tag { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text2); }
+  .meta-tag .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--text3); }
+
+  .idea-notes {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .series-idea-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--pink);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .series-idea-card:active { background: var(--surface2); }
+  .series-idea-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .series-idea-notes { font-size: 13px; color: var(--text2); line-height: 1.5; }
+
+  .promote-btn {
+    margin-top: 10px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--pink-dim);
+    color: var(--pink);
+    border: 1px solid var(--pink);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .promote-btn:active { opacity: 0.7; }
+
+  /* EMPTY */
+  .empty { text-align: center; padding: 48px 24px; color: var(--text3); }
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-title { font-size: 16px; font-weight: 600; color: var(--text2); margin-bottom: 6px; }
+  .empty-sub { font-size: 14px; }
+
+  /* MODALS */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border-radius: 20px 20px 0 0;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    width: 100%;
+    max-width: 600px;
+    max-height: 92vh;
+    overflow-y: auto;
+    padding: 8px 20px 48px;
+    animation: slideUp 0.25s ease;
+  }
+
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+  .modal-handle { width: 36px; height: 4px; background: var(--border2); border-radius: 2px; margin: 10px auto 20px; }
+  .modal-title { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 20px; }
+
+  .form-group { margin-bottom: 16px; }
+
+  .form-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text2);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .form-input, .form-select, .form-textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 15px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    transition: border-color 0.15s;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--neon); }
+  @media (prefers-color-scheme: light) { .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: #5a5a00; } }
+
+  .form-textarea { resize: none; height: 90px; line-height: 1.5; }
+  .form-select option { background: var(--surface2); }
+  .select-wrapper { position: relative; }
+  .select-wrapper::after { content: '▾'; position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--text3); pointer-events: none; font-size: 13px; }
+
+  .status-toggle { display: flex; gap: 8px; }
+
+  .status-opt {
+    flex: 1;
+    padding: 10px 8px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text2);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+  }
+
+  .status-opt.sel-idea { background: var(--blue-dim); border-color: var(--status-idea); color: var(--status-idea); }
+  .status-opt.sel-film { background: rgba(255,159,77,0.12); border-color: var(--status-film); color: var(--status-film); }
+  .status-opt.sel-posted { background: rgba(77,255,143,0.12); border-color: var(--status-posted); color: var(--status-posted); }
+
+  .modal-actions { display: flex; gap: 10px; margin-top: 24px; }
+
+  .btn-save {
+    flex: 1;
+    background: var(--neon);
+    color: #0a0a0f;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+
+  @media (prefers-color-scheme: light) { .btn-save { background: #0a0a0f; color: #f2f2f8; } }
+  .btn-save:active { opacity: 0.75; }
+
+  .btn-delete {
+    background: rgba(255,77,77,0.12);
+    color: #ff4d4d;
+    border: 1px solid rgba(255,77,77,0.3);
+    border-radius: var(--radius-sm);
+    padding: 14px 18px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+  }
+
+  .btn-delete:active { opacity: 0.75; }
+
+  .btn-cancel {
+    background: var(--surface2);
+    color: var(--text2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 18px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+  }
+
+  .btn-cancel:active { opacity: 0.75; }
+
+  .add-custom-row { display: flex; gap: 8px; margin-top: 8px; }
+
+  .add-custom-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-size: 14px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    outline: none;
+  }
+
+  .add-custom-btn {
+    background: var(--surface3);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text2);
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .add-custom-btn:active { opacity: 0.7; }
+
+  /* SIGN IN SCREEN */
+  .signin-screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 32px 24px;
+    text-align: center;
+  }
+
+  .signin-screen.visible { display: flex; }
+
+  .signin-logo {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .signin-logo span { color: var(--neon); }
+  @media (prefers-color-scheme: light) { .signin-logo span { color: #7a7a00; } }
+
+  .signin-sub { font-size: 14px; color: var(--text2); margin-bottom: 40px; line-height: 1.6; }
+
+  .google-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #ffffff;
+    color: #333;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 14px 24px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    transition: box-shadow 0.15s;
+  }
+
+  .google-btn:active { box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+
+  .google-icon { width: 20px; height: 20px; }
+
+  .signin-note { font-size: 12px; color: var(--text3); margin-top: 20px; max-width: 280px; line-height: 1.6; }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface3);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    z-index: 999;
+    transition: transform 0.3s ease;
+    white-space: nowrap;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- SIGN IN SCREEN -->
+<div class="signin-screen" id="signin-screen">
+  <div class="signin-logo">Vegas <span>✦</span> Ideas</div>
+  <p class="signin-sub">Sign in with Google to keep your ideas<br>synced across your iPhone and iPad.</p>
+  <button class="google-btn" onclick="signIn()">
+    <svg class="google-icon" viewBox="0 0 24 24">
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+    </svg>
+    Sign in with Google
+  </button>
+  <p class="signin-note">Your ideas save to a private file in your own Google Drive. No data is stored anywhere else.</p>
+</div>
+
+<!-- SYNC BAR (shown when signed in) -->
+<div id="sync-bar" class="sync-bar" style="display:none;">
+  <div class="sync-indicator">
+    <div class="sync-dot local" id="sync-dot"></div>
+    <span id="sync-label">Loading…</span>
+  </div>
+  <button class="sync-btn sign-in" id="sync-action-btn" onclick="handleSyncAction()" style="display:none;"></button>
+</div>
+
+<!-- APP (shown when signed in) -->
+<div id="app" style="display:none;">
+  <div class="header">
+    <div class="header-top">
+      <div class="logo">Vegas <span>✦</span> Ideas</div>
+      <button class="add-btn" onclick="openAddModal()">+ Add idea</button>
+    </div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('ideas', this)">Video Ideas</button>
+      <button class="tab" onclick="switchTab('series', this)">Series Ideas</button>
+    </div>
+  </div>
+
+  <div id="tab-ideas">
+    <div class="view-toggle">
+      <button class="view-btn active" onclick="setView('venue', this)">By Venue</button>
+      <button class="view-btn" onclick="setView('series', this)">By Series</button>
+      <button class="view-btn" onclick="setView('list', this)">All</button>
+    </div>
+    <div class="filter-bar">
+      <button class="filter-chip active" onclick="setFilter('all', this)">All</button>
+      <button class="filter-chip" onclick="setFilter('Idea', this)">💡 Idea</button>
+      <button class="filter-chip" onclick="setFilter('Need Film', this)">🎬 Need Film</button>
+      <button class="filter-chip" onclick="setFilter('Posted', this)">✅ Posted</button>
+    </div>
+    <div class="main" id="ideas-list"></div>
+  </div>
+
+  <div id="tab-series" style="display:none;">
+    <div class="main" id="series-list" style="padding-top:16px;"></div>
+  </div>
+</div>
+
+<!-- IDEA MODAL -->
+<div class="modal-overlay" id="idea-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-title">New video idea</div>
+
+    <div class="form-group">
+      <label class="form-label">Title / Concept</label>
+      <input class="form-input" id="f-title" placeholder="What's the idea?">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Series</label>
+      <div class="select-wrapper">
+        <select class="form-select" id="f-series"></select>
+      </div>
+      <div class="add-custom-row">
+        <input class="add-custom-input" id="new-series-input" placeholder="Add new series…">
+        <button class="add-custom-btn" onclick="addNewSeries()">Add</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Venue / Location Tag</label>
+      <div class="select-wrapper">
+        <select class="form-select" id="f-venue"></select>
+      </div>
+      <div class="add-custom-row">
+        <input class="add-custom-input" id="new-venue-input" placeholder="Add new venue…">
+        <button class="add-custom-btn" onclick="addNewVenue()">Add</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <div class="status-toggle">
+        <button class="status-opt sel-idea" onclick="selectStatus('Idea', this)">💡 Idea</button>
+        <button class="status-opt" onclick="selectStatus('Need Film', this)">🎬 Need Film</button>
+        <button class="status-opt" onclick="selectStatus('Posted', this)">✅ Posted</button>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Notes & Hooks</label>
+      <textarea class="form-textarea" id="f-notes" placeholder="Hook ideas, angles to shoot, things to say…"></textarea>
+    </div>
+
+    <div class="modal-actions" id="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('idea-modal')">Cancel</button>
+      <button class="btn-save" onclick="saveIdea()">Save idea</button>
+    </div>
+  </div>
+</div>
+
+<!-- SERIES MODAL -->
+<div class="modal-overlay" id="series-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="series-modal-title">New series concept</div>
+
+    <div class="form-group">
+      <label class="form-label">Series Name / Concept</label>
+      <input class="form-input" id="sf-title" placeholder="What's the series idea?">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Notes</label>
+      <textarea class="form-textarea" id="sf-notes" placeholder="Format, angles, what makes it interesting…"></textarea>
+    </div>
+
+    <div class="modal-actions" id="series-modal-actions">
+      <button class="btn-cancel" onclick="closeModal('series-modal')">Cancel</button>
+      <button class="btn-save" onclick="saveSeriesIdea()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── GOOGLE AUTH CONFIG ──────────────────────────────────────────────────────
+// Uses Google Identity Services (no backend needed)
+const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+const DRIVE_FILE_NAME = 'vegas-ideas.json';
+
+let tokenClient;
+let accessToken = null;
+let driveFileId = null;
+let syncTimeout = null;
+let isSyncing = false;
+
+// ─── DATA ────────────────────────────────────────────────────────────────────
+
+const DEFAULT_SERIES = [
+  "Most Liked in Vegas",
+  "DON'T BOOK",
+  "Before You Book",
+  "Croissant Crawl",
+  "July 4th Free Activities",
+  "Fontainebleau Food Hall",
+  "Vegas Decades Nostalgia",
+  "Scent Candle Dupes",
+  "Zodiac Signs & Vegas",
+  "Standalone / No Series"
+];
+
+const DEFAULT_VENUES = [
+  "Caesars Palace Hotel & Casino","Bellagio Hotel & Casino","The Venetian Resort Las Vegas",
+  "The Venetian Las Vegas","The Palazzo at The Venetian Resort","Flamingo Las Vegas Hotel & Casino",
+  "Fontainebleau Las Vegas","The Cosmopolitan of Las Vegas","MGM GRAND Las Vegas","Wynn Las Vegas",
+  "Excalibur Hotel & Casino","Mandalay Bay Resort & Casino","Luxor Hotel & Casino",
+  "Paris Las Vegas Hotel & Casino","Horseshoe Las Vegas","Planet Hollywood Las Vegas Resort & Casino",
+  "Treasure Island - TI Las Vegas Hotel & Casino","ARIA Resort & Casino","PARK MGM Las Vegas",
+  "SAHARA Las Vegas","The STRAT Hotel, Casino & Tower","Vdara Hotel & Spa","Harrah's Las Vegas Hotel",
+  "Trump International Hotel Las Vegas","New York-New York Hotel & Casino","Circus Circus Hotel and Casino",
+  "CONRAD Las Vegas at RESORTS World","The Forum Shops at Caesars","The Shops at CRYSTALS",
+  "FASHION SHOW Las Vegas","TAO Asian Bistro & Nightclub","Topgolf Las Vegas","M&M'S Las Vegas",
+  "Madame Tussauds Las Vegas","MUSEUM OF ILLUSIONS LAS VEGAS","Sphere","ALLEGIANT STADIUM",
+  "T-Mobile ARENA","The Las Vegas Strip","Welcome to Fabulous Las Vegas Sign",
+  "High Roller Observation Wheel","Bellagio Conservatory & Botanical Gardens",
+  "Fremont Street Experience","Fremont Street EXPERIENCE","Fremont Hotel & Casino",
+  "Las Vegas Sign - Fremont Street","Golden Nugget Las Vegas Hotel & Casino",
+  "Plaza Hotel and Casino","Circa Resort & Casino","Downtown Las Vegas",
+  "The Neon Museum Las Vegas","The STRAT Tower","Las Vegas Art District","Hoover Dam",
+  "No Specific Venue"
+];
+
+let ideas = [];
+let seriesIdeas = [];
+let customSeries = [];
+let customVenues = [];
+let currentView = 'venue';
+let currentFilter = 'all';
+let currentTab = 'ideas';
+let editingId = null;
+let editingSeriesId = null;
+let selectedStatus = 'Idea';
+
+function getAllSeries() { return [...DEFAULT_SERIES, ...customSeries]; }
+function getAllVenues() { return [...DEFAULT_VENUES, ...customVenues]; }
+
+// ─── LOCAL STORAGE ────────────────────────────────────────────────────────────
+
+function saveLocal() {
+  try {
+    const data = buildDataObj();
+    localStorage.setItem('vt_data', JSON.stringify(data));
+  } catch(e) {}
+}
+
+function loadLocal() {
+  try {
+    const raw = localStorage.getItem('vt_data');
+    if (raw) applyData(JSON.parse(raw));
+  } catch(e) {}
+}
+
+function buildDataObj() {
+  return { ideas, seriesIdeas, customSeries, customVenues, v: 1 };
+}
+
+function applyData(data) {
+  if (!data) return;
+  ideas = data.ideas || [];
+  seriesIdeas = data.seriesIdeas || [];
+  customSeries = data.customSeries || [];
+  customVenues = data.customVenues || [];
+}
+
+// ─── GOOGLE AUTH ──────────────────────────────────────────────────────────────
+
+function initGoogleAuth() {
+  // Check if we have a stored token hint
+  const savedUser = localStorage.getItem('vt_signed_in');
+
+  // Load the GIS script
+  const script = document.createElement('script');
+  script.src = 'https://accounts.google.com/gsi/client';
+  script.onload = () => {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      // Users will need to enter their own Client ID here
+      client_id: localStorage.getItem('vt_client_id') || '',
+      scope: SCOPES,
+      callback: handleTokenResponse,
+    });
+
+    if (savedUser && localStorage.getItem('vt_client_id')) {
+      // Try silent sign-in by requesting token without prompt
+      showApp();
+      loadLocal();
+      renderAll();
+      setSyncStatus('local', 'Tap to connect Google Drive');
+      showSyncActionBtn('Connect Drive', connectDrive);
+    } else {
+      showSignIn();
+    }
+  };
+  script.onerror = () => {
+    // Offline or GIS unavailable — use local only
+    showApp();
+    loadLocal();
+    renderAll();
+    setSyncStatus('local', 'Offline — saved locally');
+  };
+  document.head.appendChild(script);
+}
+
+function signIn() {
+  // Check for client ID
+  const clientId = localStorage.getItem('vt_client_id');
+  if (!clientId) {
+    showClientIdPrompt();
+    return;
+  }
+  tokenClient.requestAccessToken({ prompt: 'consent' });
+}
+
+function showClientIdPrompt() {
+  const id = prompt(
+    'To sync with Google Drive, you need a free Google API Client ID.\n\n' +
+    'See the setup instructions in the file, or paste your Client ID here:'
+  );
+  if (id && id.trim()) {
+    localStorage.setItem('vt_client_id', id.trim());
+    // Reinit with the new client ID
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: id.trim(),
+      scope: SCOPES,
+      callback: handleTokenResponse,
+    });
+    tokenClient.requestAccessToken({ prompt: 'consent' });
+  }
+}
+
+function connectDrive() {
+  if (!tokenClient) return;
+  tokenClient.requestAccessToken({ prompt: '' });
+}
+
+function handleTokenResponse(resp) {
+  if (resp.error) {
+    setSyncStatus('error', 'Sign in failed');
+    return;
+  }
+  accessToken = resp.access_token;
+  localStorage.setItem('vt_signed_in', '1');
+  showApp();
+  loadLocal();
+  renderAll();
+  setSyncStatus('syncing', 'Connecting to Drive…');
+  loadFromDrive();
+}
+
+// ─── DRIVE SYNC ───────────────────────────────────────────────────────────────
+
+async function findOrCreateDriveFile() {
+  // Search for existing file
+  const searchResp = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=name%3D'${DRIVE_FILE_NAME}'+and+trashed%3Dfalse&spaces=drive&fields=files(id,name)`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  const searchData = await searchResp.json();
+
+  if (searchData.files && searchData.files.length > 0) {
+    driveFileId = searchData.files[0].id;
+    return driveFileId;
+  }
+
+  // Create new file
+  const createResp = await fetch(
+    'https://www.googleapis.com/drive/v3/files',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ name: DRIVE_FILE_NAME, mimeType: 'application/json' })
+    }
+  );
+  const createData = await createResp.json();
+  driveFileId = createData.id;
+  return driveFileId;
+}
+
+async function loadFromDrive() {
+  try {
+    setSyncStatus('syncing', 'Loading from Drive…');
+    const fileId = await findOrCreateDriveFile();
+
+    const resp = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+
+    if (resp.status === 200) {
+      const text = await resp.text();
+      if (text && text.trim().startsWith('{')) {
+        const data = JSON.parse(text);
+        applyData(data);
+        saveLocal();
+        renderAll();
+      }
+    }
+
+    setSyncStatus('synced', 'Synced with Drive');
+    hideSyncActionBtn();
+    showToast('✓ Connected to Google Drive');
+  } catch(e) {
+    setSyncStatus('error', 'Drive error — saved locally');
+    showSyncActionBtn('Retry', loadFromDrive);
+  }
+}
+
+async function saveToDrive() {
+  if (!accessToken || !driveFileId) {
+    saveLocal();
+    return;
+  }
+  try {
+    const content = JSON.stringify(buildDataObj());
+    await fetch(
+      `https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`,
+      {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: content
+      }
+    );
+    setSyncStatus('synced', 'Saved to Drive · ' + fmtTime());
+    saveLocal();
+  } catch(e) {
+    setSyncStatus('error', 'Save failed — backed up locally');
+    saveLocal();
+  }
+}
+
+function scheduleSave() {
+  saveLocal(); // Always save locally immediately
+  if (!accessToken || !driveFileId) return;
+  clearTimeout(syncTimeout);
+  setSyncStatus('syncing', 'Saving…');
+  syncTimeout = setTimeout(saveToDrive, 1200);
+}
+
+// ─── UI HELPERS ───────────────────────────────────────────────────────────────
+
+function showSignIn() {
+  document.getElementById('signin-screen').classList.add('visible');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('sync-bar').style.display = 'none';
+}
+
+function showApp() {
+  document.getElementById('signin-screen').classList.remove('visible');
+  document.getElementById('app').style.display = '';
+  document.getElementById('sync-bar').style.display = '';
+}
+
+function setSyncStatus(state, label) {
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  dot.className = 'sync-dot ' + state;
+  lbl.textContent = label;
+}
+
+function showSyncActionBtn(label, fn) {
+  const btn = document.getElementById('sync-action-btn');
+  btn.style.display = '';
+  btn.textContent = label;
+  btn.onclick = fn;
+}
+
+function hideSyncActionBtn() {
+  document.getElementById('sync-action-btn').style.display = 'none';
+}
+
+function handleSyncAction() {} // replaced dynamically
+
+function fmtTime() {
+  const now = new Date();
+  return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+
+function switchTab(tab, el) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-ideas').style.display = tab === 'ideas' ? '' : 'none';
+  document.getElementById('tab-series').style.display = tab === 'series' ? '' : 'none';
+  if (tab === 'series') renderSeriesList();
+  else renderIdeas();
+}
+
+function setView(v, el) {
+  currentView = v;
+  document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderIdeas();
+}
+
+function setFilter(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderIdeas();
+}
+
+function renderAll() {
+  if (currentTab === 'ideas') renderIdeas();
+  else renderSeriesList();
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+
+function renderIdeas() {
+  const container = document.getElementById('ideas-list');
+  let filtered = ideas.filter(i => currentFilter === 'all' || i.status === currentFilter);
+
+  if (!filtered.length) {
+    container.innerHTML = `<div class="empty">
+      <div class="empty-icon">📝</div>
+      <div class="empty-title">No ideas yet</div>
+      <div class="empty-sub">Tap "+ Add idea" to capture your first one</div>
+    </div>`;
+    return;
+  }
+
+  filtered.sort((a,b) => {
+    if (a.status === 'Posted' && b.status !== 'Posted') return 1;
+    if (a.status !== 'Posted' && b.status === 'Posted') return -1;
+    return b.createdAt - a.createdAt;
+  });
+
+  if (currentView === 'list') {
+    container.innerHTML = filtered.map(ideaCard).join('');
+    return;
+  }
+
+  const groupKey = currentView === 'venue' ? 'venue' : 'series';
+  const groups = {};
+  filtered.forEach(i => {
+    const key = i[groupKey] || 'Uncategorized';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(i);
+  });
+
+  const sortedGroups = Object.entries(groups).sort(([,a],[,b]) => {
+    const aActive = a.some(i => i.status !== 'Posted');
+    const bActive = b.some(i => i.status !== 'Posted');
+    if (aActive && !bActive) return -1;
+    if (!aActive && bActive) return 1;
+    return 0;
+  });
+
+  container.innerHTML = sortedGroups.map(([group, items]) => `
+    <div class="group-header">${escHtml(group)} <span class="group-count">${items.length}</span></div>
+    ${items.map(ideaCard).join('')}
+  `).join('');
+}
+
+function ideaCard(idea) {
+  const sc = idea.status === 'Idea' ? 'status-idea' : idea.status === 'Need Film' ? 'status-film' : 'status-posted';
+  const si = idea.status === 'Idea' ? '💡' : idea.status === 'Need Film' ? '🎬' : '✅';
+  return `
+    <div class="idea-card ${idea.status === 'Posted' ? 'posted' : ''}" onclick="editIdea('${idea.id}')">
+      <div class="idea-card-top">
+        <div class="idea-title">${escHtml(idea.title)}</div>
+        <span class="status-badge ${sc}">${si} ${idea.status}</span>
+      </div>
+      <div class="idea-meta">
+        ${idea.series ? `<span class="meta-tag"><span class="dot"></span>${escHtml(idea.series)}</span>` : ''}
+        ${idea.venue ? `<span class="meta-tag"><span class="dot"></span>📍 ${escHtml(idea.venue)}</span>` : ''}
+      </div>
+      ${idea.notes ? `<div class="idea-notes">${escHtml(idea.notes)}</div>` : ''}
+    </div>`;
+}
+
+function renderSeriesList() {
+  const container = document.getElementById('series-list');
+  const addBtn = `<button class="add-btn" style="margin-bottom:16px;width:100%;justify-content:center;" onclick="openAddSeriesModal()">+ New series concept</button>`;
+
+  if (!seriesIdeas.length) {
+    container.innerHTML = addBtn + `<div class="empty">
+      <div class="empty-icon">🎬</div>
+      <div class="empty-title">No series concepts yet</div>
+      <div class="empty-sub">Capture a rough series idea before you've figured out the individual videos</div>
+    </div>`;
+    return;
+  }
+
+  container.innerHTML = addBtn + seriesIdeas.map(s => `
+    <div class="series-idea-card" onclick="editSeriesIdea('${s.id}')">
+      <div class="series-idea-title">${escHtml(s.title)}</div>
+      ${s.notes ? `<div class="series-idea-notes">${escHtml(s.notes)}</div>` : ''}
+      <button class="promote-btn" onclick="event.stopPropagation(); promoteToIdea('${s.id}')">→ Turn into video idea</button>
+    </div>`).join('');
+}
+
+// ─── MODALS ───────────────────────────────────────────────────────────────────
+
+function populateSelects() {
+  document.getElementById('f-series').innerHTML = getAllSeries().map(s => `<option value="${escAttr(s)}">${escHtml(s)}</option>`).join('');
+  document.getElementById('f-venue').innerHTML = getAllVenues().map(v => `<option value="${escAttr(v)}">${escHtml(v)}</option>`).join('');
+}
+
+function openAddModal() {
+  editingId = null;
+  selectedStatus = 'Idea';
+  populateSelects();
+  document.getElementById('f-title').value = '';
+  document.getElementById('f-notes').value = '';
+  document.getElementById('new-series-input').value = '';
+  document.getElementById('new-venue-input').value = '';
+  document.getElementById('modal-title').textContent = 'New video idea';
+  updateStatusToggle();
+  document.getElementById('modal-actions').innerHTML = `
+    <button class="btn-cancel" onclick="closeModal('idea-modal')">Cancel</button>
+    <button class="btn-save" onclick="saveIdea()">Save idea</button>`;
+  document.getElementById('idea-modal').classList.add('open');
+}
+
+function editIdea(id) {
+  const idea = ideas.find(i => i.id === id);
+  if (!idea) return;
+  editingId = id;
+  selectedStatus = idea.status;
+  populateSelects();
+  document.getElementById('f-title').value = idea.title;
+  document.getElementById('f-notes').value = idea.notes || '';
+  document.getElementById('f-series').value = idea.series || '';
+  document.getElementById('f-venue').value = idea.venue || '';
+  document.getElementById('new-series-input').value = '';
+  document.getElementById('new-venue-input').value = '';
+  document.getElementById('modal-title').textContent = 'Edit idea';
+  updateStatusToggle();
+  document.getElementById('modal-actions').innerHTML = `
+    <button class="btn-delete" onclick="deleteIdea('${id}')">Delete</button>
+    <button class="btn-cancel" onclick="closeModal('idea-modal')">Cancel</button>
+    <button class="btn-save" onclick="saveIdea()">Save</button>`;
+  document.getElementById('idea-modal').classList.add('open');
+}
+
+function selectStatus(status) {
+  selectedStatus = status;
+  updateStatusToggle();
+}
+
+function updateStatusToggle() {
+  document.querySelectorAll('.status-opt').forEach(b => {
+    b.classList.remove('sel-idea','sel-film','sel-posted');
+  });
+  const btns = document.querySelectorAll('.status-opt');
+  const map = { 'Idea': ['sel-idea', 0], 'Need Film': ['sel-film', 1], 'Posted': ['sel-posted', 2] };
+  if (map[selectedStatus]) {
+    btns[map[selectedStatus][1]].classList.add(map[selectedStatus][0]);
+  }
+}
+
+function saveIdea() {
+  const title = document.getElementById('f-title').value.trim();
+  if (!title) { document.getElementById('f-title').focus(); return; }
+
+  const idea = {
+    id: editingId || uid(),
+    title,
+    series: document.getElementById('f-series').value,
+    venue: document.getElementById('f-venue').value,
+    status: selectedStatus,
+    notes: document.getElementById('f-notes').value.trim(),
+    createdAt: editingId ? (ideas.find(i => i.id === editingId)?.createdAt || Date.now()) : Date.now()
+  };
+
+  if (editingId) ideas = ideas.map(i => i.id === editingId ? idea : i);
+  else ideas.unshift(idea);
+
+  closeModal('idea-modal');
+  renderIdeas();
+  scheduleSave();
+  showToast(editingId ? '✓ Idea updated' : '✓ Idea saved');
+}
+
+function deleteIdea(id) {
+  if (!confirm('Delete this idea?')) return;
+  ideas = ideas.filter(i => i.id !== id);
+  closeModal('idea-modal');
+  renderIdeas();
+  scheduleSave();
+}
+
+function openAddSeriesModal() {
+  editingSeriesId = null;
+  document.getElementById('sf-title').value = '';
+  document.getElementById('sf-notes').value = '';
+  document.getElementById('series-modal-title').textContent = 'New series concept';
+  document.getElementById('series-modal-actions').innerHTML = `
+    <button class="btn-cancel" onclick="closeModal('series-modal')">Cancel</button>
+    <button class="btn-save" onclick="saveSeriesIdea()">Save</button>`;
+  document.getElementById('series-modal').classList.add('open');
+}
+
+function editSeriesIdea(id) {
+  const s = seriesIdeas.find(x => x.id === id);
+  if (!s) return;
+  editingSeriesId = id;
+  document.getElementById('sf-title').value = s.title;
+  document.getElementById('sf-notes').value = s.notes || '';
+  document.getElementById('series-modal-title').textContent = 'Edit series concept';
+  document.getElementById('series-modal-actions').innerHTML = `
+    <button class="btn-delete" onclick="deleteSeriesIdea('${id}')">Delete</button>
+    <button class="btn-cancel" onclick="closeModal('series-modal')">Cancel</button>
+    <button class="btn-save" onclick="saveSeriesIdea()">Save</button>`;
+  document.getElementById('series-modal').classList.add('open');
+}
+
+function saveSeriesIdea() {
+  const title = document.getElementById('sf-title').value.trim();
+  if (!title) { document.getElementById('sf-title').focus(); return; }
+  const s = {
+    id: editingSeriesId || uid(),
+    title,
+    notes: document.getElementById('sf-notes').value.trim(),
+    createdAt: editingSeriesId ? (seriesIdeas.find(x => x.id === editingSeriesId)?.createdAt || Date.now()) : Date.now()
+  };
+  if (editingSeriesId) seriesIdeas = seriesIdeas.map(x => x.id === editingSeriesId ? s : x);
+  else seriesIdeas.unshift(s);
+  closeModal('series-modal');
+  renderSeriesList();
+  scheduleSave();
+  showToast(editingSeriesId ? '✓ Series updated' : '✓ Series saved');
+}
+
+function deleteSeriesIdea(id) {
+  if (!confirm('Delete this series concept?')) return;
+  seriesIdeas = seriesIdeas.filter(x => x.id !== id);
+  closeModal('series-modal');
+  renderSeriesList();
+  scheduleSave();
+}
+
+function promoteToIdea(seriesId) {
+  const s = seriesIdeas.find(x => x.id === seriesId);
+  if (!s) return;
+  editingId = null;
+  selectedStatus = 'Idea';
+  populateSelects();
+  document.getElementById('f-title').value = s.title;
+  document.getElementById('f-notes').value = s.notes || '';
+  document.getElementById('modal-title').textContent = 'Turn into video idea';
+  updateStatusToggle();
+  document.getElementById('modal-actions').innerHTML = `
+    <button class="btn-cancel" onclick="closeModal('idea-modal')">Cancel</button>
+    <button class="btn-save" onclick="saveIdea()">Save idea</button>`;
+  closeModal('series-modal');
+  document.getElementById('idea-modal').classList.add('open');
+}
+
+function addNewSeries() {
+  const val = document.getElementById('new-series-input').value.trim();
+  if (!val) return;
+  if (!customSeries.includes(val) && !DEFAULT_SERIES.includes(val)) customSeries.push(val);
+  populateSelects();
+  document.getElementById('f-series').value = val;
+  document.getElementById('new-series-input').value = '';
+  scheduleSave();
+}
+
+function addNewVenue() {
+  const val = document.getElementById('new-venue-input').value.trim();
+  if (!val) return;
+  if (!customVenues.includes(val) && !DEFAULT_VENUES.includes(val)) customVenues.push(val);
+  populateSelects();
+  document.getElementById('f-venue').value = val;
+  document.getElementById('new-venue-input').value = '';
+  scheduleSave();
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+  });
+});
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+
+function uid() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escAttr(s) { return String(s).replace(/"/g,'&quot;'); }
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+
+initGoogleAuth();
+</script>
+
+<!--
+═══════════════════════════════════════════════════════
+  SETUP: HOW TO CONNECT GOOGLE DRIVE (one-time, ~5 min)
+═══════════════════════════════════════════════════════
+
+To sync across devices, you need a free Google API Client ID.
+Here's how to get one:
+
+1. Go to: https://console.cloud.google.com/
+2. Create a new project (name it anything, e.g. "Vegas Tracker")
+3. Go to "APIs & Services" → "Library"
+   Search for "Google Drive API" and click Enable
+4. Go to "APIs & Services" → "OAuth consent screen"
+   - Choose "External"
+   - Fill in App name (e.g. "Vegas Ideas") and your email
+   - Save and continue through the steps
+   - Under "Test users" add your Google email address
+5. Go to "APIs & Services" → "Credentials"
+   - Click "Create Credentials" → "OAuth client ID"
+   - Application type: Web application
+   - Name: Vegas Tracker
+   - Under "Authorized JavaScript origins" add the URL
+     where you're hosting this file (e.g. if using GitHub Pages,
+     add https://yourusername.github.io)
+   - Click Create — copy the Client ID (ends in .apps.googleusercontent.com)
+6. Open this app in Safari, tap "Sign in with Google"
+   Paste your Client ID when prompted — it saves for future sessions.
+
+Your ideas will be stored in a file called "vegas-ideas.json"
+in the root of your Google Drive. Only you can see it.
+═══════════════════════════════════════════════════════
+-->
+
+</body>
+</html>
