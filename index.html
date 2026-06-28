@@ -823,83 +823,84 @@ function applyData(data) {
 // ─── GOOGLE AUTH ──────────────────────────────────────────────────────────────
 
 function initGoogleAuth() {
-  // Check if we have a stored token hint
-  const savedUser = localStorage.getItem('vt_signed_in');
+  // Always show app immediately with local data — Drive sync is optional
+  showApp();
+  loadLocal();
+  renderAll();
 
-  // Load the GIS script
+  const savedUser = localStorage.getItem('vt_signed_in');
+  const clientId = localStorage.getItem('vt_client_id');
+
+  // Load the GIS script in background
   const script = document.createElement('script');
   script.src = 'https://accounts.google.com/gsi/client';
   script.onload = () => {
-    tokenClient = google.accounts.oauth2.initTokenClient({
-      // Users will need to enter their own Client ID here
-      client_id: localStorage.getItem('vt_client_id') || '',
-      scope: SCOPES,
-      callback: handleTokenResponse,
-    });
+    if (clientId) {
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: SCOPES,
+        callback: handleTokenResponse,
+      });
+    }
 
-    if (savedUser && localStorage.getItem('vt_client_id')) {
-      // Try silent sign-in by requesting token without prompt
-      showApp();
-      loadLocal();
-      renderAll();
-      setSyncStatus('local', 'Tap to connect Google Drive');
+    if (savedUser && clientId) {
+      // Already set up before — auto-connect
+      setSyncStatus('syncing', 'Connecting to Drive…');
+      tokenClient.requestAccessToken({ prompt: '' });
+    } else if (clientId) {
+      setSyncStatus('local', 'Saved locally');
       showSyncActionBtn('Connect Drive', connectDrive);
     } else {
-      showSignIn();
+      setSyncStatus('local', 'Saved locally');
+      showSyncActionBtn('Set up Drive sync', setupDriveSync);
     }
   };
   script.onerror = () => {
-    // Offline or GIS unavailable — use local only
-    showApp();
-    loadLocal();
-    renderAll();
-    setSyncStatus('local', 'Offline — saved locally');
+    setSyncStatus('local', 'Saved locally');
   };
   document.head.appendChild(script);
 }
 
+function setupDriveSync() {
+  showClientIdPrompt();
+}
+
 function signIn() {
-  // Check for client ID
   const clientId = localStorage.getItem('vt_client_id');
-  if (!clientId) {
-    showClientIdPrompt();
-    return;
+  if (!clientId) { showClientIdPrompt(); return; }
+  if (!tokenClient) {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: clientId, scope: SCOPES, callback: handleTokenResponse,
+    });
   }
   tokenClient.requestAccessToken({ prompt: 'consent' });
 }
 
 function showClientIdPrompt() {
-  const id = prompt(
-    'To sync with Google Drive, you need a free Google API Client ID.\n\n' +
-    'See the setup instructions in the file, or paste your Client ID here:'
-  );
+  const id = prompt('To sync with Google Drive, paste your Google API Client ID here:');
   if (id && id.trim()) {
     localStorage.setItem('vt_client_id', id.trim());
-    // Reinit with the new client ID
     tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: id.trim(),
-      scope: SCOPES,
-      callback: handleTokenResponse,
+      client_id: id.trim(), scope: SCOPES, callback: handleTokenResponse,
     });
     tokenClient.requestAccessToken({ prompt: 'consent' });
   }
 }
 
 function connectDrive() {
-  if (!tokenClient) return;
+  if (!tokenClient) { signIn(); return; }
   tokenClient.requestAccessToken({ prompt: '' });
 }
 
 function handleTokenResponse(resp) {
   if (resp.error) {
-    setSyncStatus('error', 'Sign in failed');
+    setSyncStatus('error', 'Sign in failed — saved locally');
+    showSyncActionBtn('Retry', connectDrive);
     return;
   }
   accessToken = resp.access_token;
   localStorage.setItem('vt_signed_in', '1');
-  showApp();
-  loadLocal();
-  renderAll();
+  hideSyncActionBtn();
   setSyncStatus('syncing', 'Connecting to Drive…');
   loadFromDrive();
 }
