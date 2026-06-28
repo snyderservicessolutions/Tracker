@@ -844,9 +844,21 @@ function initGoogleAuth() {
     }
 
     if (savedUser && clientId) {
-      // Already set up before — auto-connect
+      // Already set up before — try auto-connect with consent prompt as fallback
       setSyncStatus('syncing', 'Connecting to Drive…');
-      tokenClient.requestAccessToken({ prompt: '' });
+      try {
+        tokenClient.requestAccessToken({ prompt: '' });
+        // If stuck after 4 seconds, show reconnect button
+        setTimeout(() => {
+          if (!accessToken) {
+            setSyncStatus('error', 'Could not auto-connect');
+            showSyncActionBtn('Reconnect Drive', () => tokenClient.requestAccessToken({ prompt: 'consent' }));
+          }
+        }, 4000);
+      } catch(e) {
+        setSyncStatus('error', 'Connection failed');
+        showSyncActionBtn('Reconnect Drive', () => tokenClient.requestAccessToken({ prompt: 'consent' }));
+      }
     } else if (clientId) {
       setSyncStatus('local', 'Saved locally');
       showSyncActionBtn('Connect Drive', connectDrive);
